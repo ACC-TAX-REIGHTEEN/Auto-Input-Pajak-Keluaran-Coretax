@@ -35,8 +35,7 @@ def main():
             "2_HMA_ex2ex_analytics_third.py",
             "2_HMA_csv2ex_analytics_third.py",
             "3_Rincian2.py",
-            "4_rincian3.py",
-            "KELUARAN_README.txt"
+            "4_rincian3.py"
         ]
 
         addon_files = [
