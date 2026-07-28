@@ -123,6 +123,23 @@ def jalankan_analisis_pajak():
                 if cell.value is not None:
                     cell.value = fix_scientific_notation(cell.value)
                     cell.number_format = "@"
+                    
+    if "Data Asli Coretax" in wb.sheetnames:
+        ws_coretax = wb["Data Asli Coretax"]
+
+        col_faktur_coretax = None
+        for col in range(1, ws_coretax.max_column + 1):
+            val = ws_coretax.cell(row=1, column=col).value
+            if val and "Kode dan Nomor Seri Faktur Pajak yang Diganti/Diretur" in str(val):
+                col_faktur_coretax = col
+                break
+
+        if col_faktur_coretax:
+            for r in range(2, ws_coretax.max_row + 1):
+                cell = ws_coretax.cell(row=r, column=col_faktur_coretax)
+                if cell.value is not None:
+                    cell.value = fix_scientific_notation(cell.value)
+                    cell.number_format = "@"
 
     if "Rincian 3" in wb.sheetnames:
         ws_r3 = wb["Rincian 3"]
