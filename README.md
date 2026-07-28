@@ -2,7 +2,7 @@
 
 > **Rekonsiliasi & analisa otomatis data Pajak Keluaran antara Accurate dan Coretax DJP**
 
-Skrip Python berbasis pipeline yang membaca data ekspor dari **Accurate** (Safi/Fella `.xls`) dan data rekap Pajak Keluaran dari **Coretax DJP** (`data_export` CSV/XLSX), lalu melakukan pencocokan otomatis menggunakan algoritma **6-tahap matching**, dan menghasilkan **Laporan Analisa Pajak** Excel berisi ringkasan selisih, data tidak cocok, dan semua data yang berhasil dicocokkan — lengkap per bulan, siap untuk keperluan audit.
+Skrip Python berbasis pipeline yang membaca data ekspor dari **Accurate** (Acc `.xls`) dan data rekap Pajak Keluaran dari **Coretax DJP** (`data_export` CSV/XLSX), lalu melakukan pencocokan otomatis menggunakan algoritma **6-tahap matching**, dan menghasilkan **Laporan Analisa Pajak** Excel berisi ringkasan selisih, data tidak cocok, dan semua data yang berhasil dicocokkan — lengkap per bulan, siap untuk keperluan audit.
 
 ---
 
@@ -23,7 +23,7 @@ Skrip Python berbasis pipeline yang membaca data ekspor dari **Accurate** (Safi/
 
 ## ✨ Fitur Utama
 
-- **Dual input mode** — Mendukung dua format ekspor Accurate (`Safi.xls` atau `Fella.xls`) dan dua format ekspor Coretax (`data_export*.csv` atau `data_export*.xlsx`) secara sekaligus, dengan deteksi otomatis format yang tersedia.
+- **Dual input mode** — Mendukung dua format ekspor Accurate (`Acc.xls`) dan dua format ekspor Coretax (`data_export*.csv` atau `data_export*.xlsx`) secara sekaligus, dengan deteksi otomatis format yang tersedia.
 - **Smart CSV parser** — Parser khusus yang menangani CSV bermasalah (nama pelanggan dengan koma di tengah) tanpa merusak struktur data.
 - **Algoritma 6-tahap matching** — Pencocokan berjenjang dari yang paling ketat (TIN + jumlah + tanggal exact) hingga yang paling toleran (prefix nama + jumlah), meminimalkan data yang lolos tanpa pasangan.
 - **Normalisasi data lintas sistem** — Membersihkan format NPWP/NIK yang berbeda, menstandarkan nama perusahaan (strip prefix PT/CV/UD), dan mengonversi format tanggal Indonesia ke objek datetime.
@@ -52,7 +52,7 @@ pip install pandas openpyxl xlsxwriter xlrd
 | `pandas` | Baca, transformasi, gabung, dan simpan data Excel/CSV |
 | `openpyxl` | Baca/tulis `.xlsx`, styling sel (border, fill, font) |
 | `xlsxwriter` | Buat `.xlsx` baru dengan formatting lanjutan |
-| `xlrd` | Baca file legacy `.xls` dari Accurate (Safi/Fella) |
+| `xlrd` | Baca file legacy `.xls` dari Accurate (Acc) |
 | `difflib` | Fuzzy matching nama perusahaan (Tahap 4 matching) |
 
 ---
@@ -64,14 +64,13 @@ pip install pandas openpyxl xlsxwriter xlrd
 │
 ├── 📄 Keluaran_Pajak.py              ← File utama. Jalankan ini untuk memulai
 │
-├── 📄 Safi.xls                       ← [INPUT] Ekspor Accurate via Safi (salah satu)
-├── 📄 Fella.xls                      ← [INPUT] Ekspor Accurate via Fella (salah satu)
+├── 📄 Acc.xls                       ← [INPUT] Ekspor Accurate via Acc (salah satu)
 ├── 📄 data_export*.csv               ← [INPUT] Ekspor Coretax format CSV (salah satu)
 ├── 📄 data_export*.xlsx              ← [INPUT] Ekspor Coretax format XLSX (salah satu)
 │
 ├── 📁 Dapur/                         ← Folder pipeline utama (jangan diubah strukturnya)
 │   ├── 📄 __init__.py
-│   ├── 📄 1_Cleaner&MergerACC.py     ← Bersihkan Safi/Fella + gabungkan data_export
+│   ├── 📄 1_Cleaner&MergerACC.py     ← Bersihkan Acc + gabungkan data_export
 │   ├── 📄 2_HMA_ex2ex_analytics_third.py  ← Analisa & matching (input XLSX)
 │   ├── 📄 2_HMA_csv2ex_analytics_third.py ← Analisa & matching (input CSV)
 │   ├── 📄 3_Rincian2.py              ← Susun sheet "Rincian 2" (data tidak cocok)
@@ -86,8 +85,7 @@ pip install pandas openpyxl xlsxwriter xlrd
 │   └── 📄 audit_data_gabungan_keluaran_ex.py ← Audit integritas data gabungan merger
 │
 └── 📁 File Dibutuhkan/               ← Placeholder & referensi (bisa diabaikan)
-    ├── 📄 Fella.xls                  ← (kosong, contoh nama file)
-    ├── 📄 Safi.xls                   ← (kosong, contoh nama file)
+    ├── 📄 Acc.xls                  ← (kosong, contoh nama file)
     ├── 📄 data_export.csv            ← (kosong, contoh nama file)
     └── 📄 data_export.xlsx           ← (kosong, contoh nama file)
 ```
@@ -101,8 +99,7 @@ pip install pandas openpyxl xlsxwriter xlrd
 Letakkan semua file input di **folder utama** (sejajar dengan `Keluaran_Pajak.py`):
 
 **Dari Accurate** — letakkan **salah satu** (atau keduanya):
-- `Safi.xls` → ekspor laporan pajak keluaran via modul Safi di Accurate
-- `Fella.xls` → ekspor laporan pajak keluaran via modul Fella di Accurate
+- `Acc.xls` → ekspor laporan pajak keluaran via modul Acc di Accurate
 
 **Dari Coretax DJP** — letakkan **salah satu** (atau keduanya, bisa lebih dari satu file):
 - `data_export.csv` / `data_export_januari.csv` / `data_export_feb.csv` — semua file yang diawali `data_export` dan berekstensi `.csv` akan digabungkan otomatis
@@ -138,14 +135,14 @@ Pipeline dijalankan berurutan oleh `Keluaran_Pajak.py`:
 [Mulai]
    │
    ├─── Validasi Awal (Keluaran_Pajak.py)
-   │       Cek: Safi.xls atau Fella.xls ada?
+   │       Cek: Acc.xls ada?
    │       Cek: data_export* (csv/xlsx) ada?
    │       Cek: folder Dapur/ dan Addon/ ada?
    │       Cek: semua skrip Dapur/ dan Addon/ lengkap?
    │       Jika ada yang kurang → tampilkan daftar file hilang & berhenti
    │
    ├─── Salin file input → folder Dapur/
-   │       Salin Safi.xls atau Fella.xls → Dapur/
+   │       Salin Acc.xls → Dapur/
    │       Salin semua data_export* → Dapur/
    │
    ├─── [STEP 1] 1_Cleaner&MergerACC.py
@@ -158,7 +155,7 @@ Pipeline dijalankan berurutan oleh `Keluaran_Pajak.py`:
    │       │   (Gabungkan multi-file, auto-detect kolom angka)
    │       │   Output: HMA_ex2ex.xlsx (jika ada file XLSX)
    │       │
-   │       └─ Modul Safi/Fella: Baca .xls dengan header baris ke-4
+   │       └─ Modul Acc: Baca .xls dengan header baris ke-4
    │           Ekstrak: Tanggal, Tgl.Pajak, No.Referensi, No.FakturPajak,
    │                    NamaPelanggan, Negara, JumlahPajak, NomorPajak
    │           Output: Hasil_CleanerACC.xlsx
@@ -302,7 +299,7 @@ python Addon/ma_ex2ex.py
 ```
 
 ### `cleaner&merger.py`
-Versi standalone lengkap dari `Dapur/1_Cleaner&MergerACC.py` — berisi ketiga modul (CSV, XLSX, Safi/Fella) dalam satu file. Berguna untuk dijalankan terpisah dari pipeline utama.
+Versi standalone lengkap dari `Dapur/1_Cleaner&MergerACC.py` — berisi ketiga modul (CSV, XLSX, Acc) dalam satu file. Berguna untuk dijalankan terpisah dari pipeline utama.
 
 ### `hitung_ppn_all_file_keluaran.py`
 Membaca semua file `.xlsx`/`.xls` di folder yang ditentukan (default: folder saat ini), lalu menjumlahkan nilai di **kolom G** (kolom ke-7) dari setiap file. Berguna untuk quick-check total PPN sebelum rekonsiliasi.
@@ -328,8 +325,8 @@ python Addon/audit_data_gabungan_keluaran_ex.py
 
 ## 🛠️ Troubleshooting
 
-### ❌ `Gagal: File Safi.xls atau Fella.xls tidak ditemukan`
-Pastikan file ekspor Accurate sudah ada di folder utama (sejajar dengan `Keluaran_Pajak.py`) dengan nama persis `Safi.xls` atau `Fella.xls`. Program membutuhkan minimal salah satu.
+### ❌ `Gagal: File Acc.xls tidak ditemukan`
+Pastikan file ekspor Accurate sudah ada di folder utama (sejajar dengan `Keluaran_Pajak.py`) dengan nama persis `Acc.xls`. Program membutuhkan minimal salah satu.
 
 ### ❌ `Gagal: File data_export (csv/xlsx) tidak ditemukan`
 Pastikan file ekspor dari Coretax DJP ada di folder utama dengan nama yang diawali `data_export`. Contoh: `data_export_maret.csv`, `data_export.xlsx`, `data_export_2.csv` — semua terdeteksi.
@@ -342,7 +339,7 @@ python "1_Cleaner&MergerACC.py"
 ```
 Kemungkinan penyebab: file `data_export*.xlsx` tidak memiliki sheet bernama `"data"` (huruf kecil), atau file CSV memiliki encoding yang tidak terbaca.
 
-### ❌ Error `xlrd` saat membaca Safi/Fella
+### ❌ Error `xlrd` saat membaca Acc
 Install versi `xlrd` yang kompatibel dengan format `.xls` lama:
 ```bash
 pip install "xlrd>=1.0.0,<2.0.0"
@@ -364,7 +361,7 @@ python 2_HMA_ex2ex_analytics_third.py
 ## 📌 Catatan Penting
 
 - **Jangan ubah struktur folder** `Dapur/` dan `Addon/` — semua skrip menggunakan path relatif dan saling bergantung.
-- **File input asli aman** — `Keluaran_Pajak.py` **menyalin** (bukan memindahkan) file dari folder utama ke `Dapur/`. File `Safi.xls`/`Fella.xls` dan `data_export*` yang ada di folder `Dapur/` (salinannya) yang akan dihapus setelah diproses.
+- **File input asli aman** — `Keluaran_Pajak.py` **menyalin** (bukan memindahkan) file dari folder utama ke `Dapur/`. File `Acc.xls` dan `data_export*` yang ada di folder `Dapur/` (salinannya) yang akan dihapus setelah diproses.
 - **File output akan tertimpa** — jika `Laporan_Analisa_Pajak_MARET.xlsx` sudah ada dari run sebelumnya, file baru akan menimpa file lama. Buat backup terlebih dahulu jika diperlukan.
 - **Matching tidak memfilter bulan** — jika file input mengandung data dari beberapa bulan, semua akan diproses bersama-sama. Deteksi bulan hanya digunakan untuk penamaan file output.
 - **Selalu verifikasi Blok B** — data di Blok B (Hanya di Accurate) adalah yang paling kritis: faktur tersebut sudah ada di pembukuan Accurate tetapi belum tercatat di Coretax, yang berpotensi berdampak pada pelaporan pajak.
