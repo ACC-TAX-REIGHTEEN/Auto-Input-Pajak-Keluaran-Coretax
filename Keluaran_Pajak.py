@@ -5,6 +5,25 @@ import subprocess
 import sys
 
 
+def bersihkan_folder_dapur(dapur_dir):
+    pola_xls = os.path.join(dapur_dir, "*.xls")
+    pola_xlsx = os.path.join(dapur_dir, "*.xlsx")
+    daftar_file_excel = glob.glob(pola_xls) + glob.glob(pola_xlsx)
+
+    if daftar_file_excel:
+        print("--> Bersih-bersih folder Dapur...")
+        for file_path in daftar_file_excel:
+            try:
+                os.remove(file_path)
+                print(f"--> Menghapus: {os.path.basename(file_path)}")
+            except Exception as e:
+                print(
+                    f"--> Gagal menghapus {os.path.basename(file_path)}: {e}"
+                )
+    else:
+        print("--> Folder Dapur sudah bersih (tidak ada file .xls / .xlsx).")
+
+
 def main():
     try:
         current_dir = os.getcwd()
@@ -21,7 +40,7 @@ def main():
 
         if not data_exports:
             print("--> Gagal: File data_export xlsx tidak ditemukan.")
-            input("Tekan enter untuk keluar")
+            input("Tekan enter me keluar")
             return
 
         if not os.path.exists(dapur_dir) or not os.path.exists(addon_dir):
@@ -35,13 +54,12 @@ def main():
             "2_HMA_csv2ex_analytics_third.py",
             "3_Rincian2.py",
             "4_rincian3.py",
-            "KELUARAN_README.txt",
+            "5_LookupNameData.py",
         ]
 
         addon_files = [
             "audit_data_gabungan_keluaran_ex.py",
             "cleaner&merger.py",
-            "cleaner_acc_keluaran_1612.py",
             "csv2ex.py",
             "hitung_ppn_all_file_keluaran.py",
             "ma_ex2ex.py",
@@ -65,8 +83,12 @@ def main():
             input("Tekan enter untuk keluar")
             return
 
-        print("--> Pengecekan selesai. Memulai proses penyalinan file...")
+        print("--> Pengecekan selesai.")
 
+        print("--> [Langkah Awal] Memeriksa & membersihkan folder Dapur...")
+        bersihkan_folder_dapur(dapur_dir)
+
+        print("--> Memulai proses penyalinan file input ke folder Dapur...")
         if acc_exists:
             shutil.copy("Acc.xls", dapur_dir)
 
@@ -114,6 +136,11 @@ def main():
             [sys.executable, "4_rincian3.py"], cwd=dapur_dir, check=True
         )
 
+        print("--> Menjalankan 5_LookupNameData.py...")
+        subprocess.run(
+            [sys.executable, "5_LookupNameData.py"], cwd=dapur_dir, check=True
+        )
+
         result_files = glob.glob(
             os.path.join(dapur_dir, "Laporan_Analisa_Pajak*.xlsx")
         )
@@ -124,10 +151,13 @@ def main():
             destination = os.path.join(current_dir, filename)
 
             shutil.copy(target_file, destination)
-            os.remove(target_file)
             print(
                 f"--> Selesai. File {filename} telah disalin ke folder utama."
             )
+
+            print("--> [Langkah Akhir] Membersihkan seluruh file Excel di folder Dapur...")
+            bersihkan_folder_dapur(dapur_dir)
+
         else:
             print(
                 "--> Gagal: File Laporan_Analisa_Pajak tidak ditemukan setelah proses selesai."
