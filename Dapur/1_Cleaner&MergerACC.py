@@ -9,22 +9,27 @@ from openpyxl.utils import get_column_letter
 
 def print_debug_csv(message):
     waktu = datetime.datetime.now().strftime("%H:%M:%S")
-    print(f"--> CSV [{waktu}] {message}")
+    print(f"--> [CSV-LOG] [{waktu}] {message}")
 
 def clean_and_parse_csv_smart(file_path):
     cleaned_rows = []
     
     with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
         lines = f.readlines()
-        if len(lines) == 0: return pd.DataFrame()
+        
+        if len(lines) == 0:
+            return pd.DataFrame()
+        
         header_raw = lines[0].strip()
         header_cols = header_raw.split(',')
         target_col_count = len(header_cols)
+        
         cleaned_rows.append("|".join(header_cols))
         
         for line in lines[1:]:
             line = line.strip()
-            if not line: continue 
+            if not line:
+                continue 
             
             parts = line.split(',')
             
@@ -52,10 +57,10 @@ def jalankan_proses_csv():
         all_files = glob.glob(pattern)
         
         if not all_files: 
-            print_debug_csv(f"--> Info: Tidak ditemukan file CSV dengan pola '{pattern}'. Skip proses CSV.")
+            print_debug_csv(f"Info: Tidak ditemukan file CSV dengan pola '{pattern}'. Skip proses CSV.")
             return
 
-        print_debug_csv(f"--> Ditemukan {len(all_files)} file CSV untuk diproses.")
+        print_debug_csv(f"Ditemukan {len(all_files)} file CSV untuk diproses.")
 
         df_list = []
         processed_files = [] 
@@ -66,34 +71,34 @@ def jalankan_proses_csv():
                 df_list.append(df_parsed)
                 processed_files.append(filename) 
             except Exception as e:
-                print_debug_csv(f"--> Error gagal memproses {filename}: {e}")
+                print_debug_csv(f"[ERROR] Gagal memproses {filename}: {e}")
 
         if not df_list:
-            print_debug_csv("--> Tidak ada data yang berhasil diproses dari file CSV.")
+            print_debug_csv("Tidak ada data yang berhasil diproses dari file CSV.")
             return
 
-        print_debug_csv("--> Menggabungkan data...")
+        print_debug_csv("Menggabungkan data...")
         df_combined = pd.concat(df_list, ignore_index=True)
         
         if 'Unnamed: 0' in df_combined.columns:
             df_combined = df_combined.drop(columns=['Unnamed: 0'])
         elif len(df_combined.columns) > 0:
             if df_combined.columns[0] == '' or 'Unnamed' in df_combined.columns[0]:
-                 df_combined = df_combined.drop(columns=[df_combined.columns[0]])
+                df_combined = df_combined.drop(columns=[df_combined.columns[0]])
 
         col_names = df_combined.columns
         start_numeric_index = 4
         if 'TaxBase' in col_names:
             start_numeric_index = df_combined.columns.get_loc('TaxBase')
-            print_debug_csv(f"--> Deteksi Kolom Angka (TaxBase) di kolom index: {start_numeric_index}")
+            print_debug_csv(f"Deteksi Kolom Angka (TaxBase) di kolom index: {start_numeric_index}")
         else:
-            print_debug_csv(f"--> Menggunakan default kolom angka mulai index: {start_numeric_index}")
+            print_debug_csv(f"Menggunakan default kolom angka mulai index: {start_numeric_index}")
 
         for i in range(start_numeric_index, len(col_names)):
             col = col_names[i]
             df_combined[col] = pd.to_numeric(df_combined[col], errors='coerce')
 
-        print_debug_csv(f"--> Menyimpan ke {output_excel}...")
+        print_debug_csv(f"Menyimpan ke {output_excel}...")
         with pd.ExcelWriter(output_excel, engine='xlsxwriter') as writer:
             df_combined.to_excel(writer, index=False, sheet_name='Data')
             workbook = writer.book
@@ -102,14 +107,16 @@ def jalankan_proses_csv():
             fmt_num = workbook.add_format({'num_format': '#,##0'})
             
             for i, col in enumerate(df_combined.columns):
-                try: max_len = max(df_combined[col].astype(str).map(len).max(), len(str(col))) + 2
-                except: max_len = 15
+                try:
+                    max_len = max(df_combined[col].astype(str).map(len).max(), len(str(col))) + 2
+                except Exception:
+                    max_len = 15
                 if i < start_numeric_index: 
                     worksheet.set_column(i, i, max_len, fmt_text)
                 else: 
                     worksheet.set_column(i, i, max_len, fmt_num)
 
-        print_debug_csv(f"--> SUKSES! File tersimpan: {output_excel}")
+        print_debug_csv(f"SUKSES! File tersimpan: {output_excel}")
 
         print_debug_csv("--- MEMBERSIHKAN FILE CSV ASLI ---")
         deleted_count = 0
@@ -117,15 +124,15 @@ def jalankan_proses_csv():
             try:
                 if os.path.exists(csv_file):
                     os.remove(csv_file)
-                    print_debug_csv(f"--> Hapus {csv_file}")
+                    print_debug_csv(f"[DELETED] {csv_file}")
                     deleted_count += 1
             except Exception as e:
-                print_debug_csv(f"--> Gagal hapus {csv_file}: {e}")
+                print_debug_csv(f"[GAGAL HAPUS] {csv_file}: {e}")
 
-        print_debug_csv(f"--> Selesai. {deleted_count} file CSV telah dihapus.")
+        print_debug_csv(f"Selesai. {deleted_count} file CSV telah dihapus.")
 
     except Exception as e:
-        print(f"\n--> FATAL ERROR CSV: {e}")
+        print(f"--> FATAL ERROR CSV: {e}")
         print("--> File CSV TIDAK dihapus karena terjadi error.")
 
 def jalankan_proses_excel():
@@ -134,12 +141,12 @@ def jalankan_proses_excel():
     nama_sheet_target = "data" 
     nama_file_output = "HMA_ex2ex.xlsx"
 
-    print(f"\n--> Memulai Cek File Excel...")
+    print("--> [XLSX-LOG] Memulai Cek File Excel...")
     semua_file = glob.glob(os.path.join(path_folder, pola_file))
     semua_file = [f for f in semua_file if nama_file_output not in f]
 
     if not semua_file:
-        print(f"--> Info: Tidak ditemukan file XLSX dengan pola '{pola_file}'. Skip proses Excel.")
+        print(f"--> [XLSX-LOG] Info: Tidak ditemukan file XLSX dengan pola '{pola_file}'. Skip proses Excel.")
         return
 
     print(f"--> Ditemukan {len(semua_file)} file XLSX. Memulai penggabungan...")
@@ -159,14 +166,14 @@ def jalankan_proses_excel():
             df.columns = range(df.shape[1])
             
             if len(df.columns) != len(header_utama):
-                print(f"--> Peringatan {file} jumlah kolom beda. Tetap digabung.")
+                print(f"--> [WARNING] {file} jumlah kolom beda. Tetap digabung.")
             
             list_data.append(df)
             file_sukses.append(file) 
-            print(f"--> OK {file} : {len(df)} baris")
+            print(f"--> [OK] {file} : {len(df)} baris")
             
         except Exception as e:
-            print(f"--> Skip {file}: {e}")
+            print(f"--> [SKIP] {file}: {e}")
 
     if list_data:
         try:
@@ -204,21 +211,23 @@ def jalankan_proses_excel():
                     try:
                         if cell.value:
                             item_len = len(str(cell.value))
-                            if item_len > max_length: max_length = item_len
-                    except: pass
+                            if item_len > max_length:
+                                max_length = item_len
+                    except Exception:
+                        pass
                 ws.column_dimensions[col_letter].width = max_length + 2
 
             wb.save(nama_file_output)
             print(f"--> SUKSES! Data tersimpan di: {nama_file_output}")
 
-            print("\n--- MEMBERSIHKAN FILE ASLI (XLSX) ---")
+            print("--> --- MEMBERSIHKAN FILE ASLI (XLSX) ---")
             for f in file_sukses:
                 try:
                     if os.path.exists(f):
                         os.remove(f)
-                        print(f"--> Hapus {f}")
+                        print(f"--> [DELETED] {f}")
                 except Exception as e:
-                    print(f"--> Gagal hapus {f}: {e}")
+                    print(f"--> [GAGAL HAPUS] {f}: {e}")
             print("--> Selesai membersihkan file sumber Excel.")
 
         except Exception as e:
@@ -256,7 +265,7 @@ def read_file_smart(filepath):
     try:
         return pd.read_excel(filepath, header=3, engine='xlrd', dtype=str)
     except ImportError:
-        print("\n--> Error Modul 'xlrd' belum terinstall (pip install xlrd)")
+        print("--> [ERROR] Modul 'xlrd' belum terinstall (pip install xlrd)")
         sys.exit()
     except Exception:
         try:
@@ -266,18 +275,15 @@ def read_file_smart(filepath):
         except Exception:
             return None
 
-def jalankan_proses_safi_fella():
+def jalankan_proses_acc():
     try:
         current_folder = os.path.dirname(os.path.abspath(__file__))
     except NameError:
         current_folder = os.getcwd()
 
-    files_to_process = [
-        'Safi.xls',
-        'Fella.xls'
-    ]
+    files_to_process = ['Acc.xls']
 
-    print(f"\n--- MEMULAI PROSES SAFI & FELLA DI: {current_folder} ---")
+    print(f"--> --- MEMULAI PROSES ACC DI: {current_folder} ---")
 
     cols_map = {
         'Tanggal': 'Tanggal',
@@ -297,15 +303,15 @@ def jalankan_proses_safi_fella():
         full_path = os.path.join(current_folder, filename)
         
         if not os.path.exists(full_path):
-            print(f"--> Skip file tidak ditemukan: {filename}")
+            print(f"--> [SKIP] File tidak ditemukan: {filename}")
             continue
 
-        print(f"--> Mengerjakan: {filename}...")
+        print(f"--> [PROSES] Mengerjakan: {filename}...")
         
         df = read_file_smart(full_path)
         
         if df is None:
-            print(f"--> Gagal format file rusak.")
+            print("--> [GAGAL] Format file rusak.")
             continue
 
         if 'Tanggal' in df.columns:
@@ -323,9 +329,7 @@ def jalankan_proses_safi_fella():
             if col in df.columns:
                 df[col] = df[col].apply(clean_to_number)
                 
-        base_name = filename.split('.')[0]
-        
-        output_filename = f"Hasil_CleanerACC.xlsx"
+        output_filename = "Hasil_CleanerACC.xlsx"
         output_path = os.path.join(current_folder, output_filename)
         
         try:
@@ -335,36 +339,36 @@ def jalankan_proses_safi_fella():
                 for i, column in enumerate(df.columns):
                     try:
                         max_len = max(df[column].astype(str).map(len).max(), len(column)) + 3
-                    except:
+                    except Exception:
                         max_len = 15
                     col_letter = get_column_letter(i + 1)
                     worksheet.column_dimensions[col_letter].width = max_len
 
-            print(f"--> Sukses disimpan: {output_filename}")
+            print(f"--> [SUKSES] Disimpan: {output_filename}")
 
             try:
                 if os.path.exists(full_path):
                     os.remove(full_path)
-                    print(f"--> File asli dihapus: {filename}")
+                    print(f"--> [INFO] File asli dihapus: {filename}")
             except Exception as del_err:
-                print(f"--> Gagal menghapus file asli: {del_err}")
+                print(f"--> [WARNING] Gagal menghapus file asli: {del_err}")
             
         except Exception as e:
-            print(f"--> Gagal menyimpan (File asli TIDAK dihapus): {e}")
+            print(f"--> [ERROR] Gagal menyimpan (File asli TIDAK dihapus): {e}")
 
-    print("--- SELESAI PROSES SAFI & FELLA ---\n")
+    print("--> --- SELESAI PROSES ACC ---")
 
 if __name__ == "__main__":
-    print("========================================")
-    print("   MASTER SCRIPT: AUTO DETECTION MODE   ")
-    print("========================================")
+    print("--> ========================================")
+    print("-->    MASTER SCRIPT: AUTO DETECTION MODE   ")
+    print("--> ========================================")
     
     csv_files = glob.glob("data_export*.csv")
     xlsx_files_export = glob.glob("data_export*.xlsx")
     xlsx_files_export = [f for f in xlsx_files_export if "HMA_" not in f]
     
     if csv_files or xlsx_files_export:
-        print("\n--> Ditemukan file 'data_export'. Menjalankan Modul Export...")
+        print("--> Ditemukan file 'data_export'. Menjalankan Modul Export...")
         
         if csv_files:
             print(f"--> {len(csv_files)} CSV ditemukan.")
@@ -374,14 +378,14 @@ if __name__ == "__main__":
             print(f"--> {len(xlsx_files_export)} XLSX ditemukan.")
             jalankan_proses_excel()
     
-    files_sf = ['Safi.xls', 'Fella.xls']
-    found_sf = [f for f in files_sf if os.path.exists(f)]
+    files_acc = ['Acc.xls']
+    found_acc = [f for f in files_acc if os.path.exists(f)]
     
-    if found_sf:
-        print(f"\n--> Ditemukan file Safi/Fella ({len(found_sf)} file). Menjalankan Modul Safi & Fella...")
-        jalankan_proses_safi_fella()
+    if found_acc:
+        print(f"--> Ditemukan file Acc ({len(found_acc)} file). Menjalankan Modul Acc...")
+        jalankan_proses_acc()
     
-    if not (csv_files or xlsx_files_export or found_sf):
-        print("\n--> Tidak ditemukan file target apapun (data_export*, Safi.xls, Fella.xls).")
+    if not (csv_files or xlsx_files_export or found_acc):
+        print("--> [INFO] Tidak ditemukan file target apapun (data_export*, Acc.xls).")
         
-    print("\n=== SEMUA TUGAS SELESAI ===")
+    print("--> === SEMUA TUGAS SELESAI ===")

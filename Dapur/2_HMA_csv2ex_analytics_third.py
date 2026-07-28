@@ -1,72 +1,88 @@
 import pandas as pd
 import numpy as np
 import re
-import os 
+import os
 from datetime import datetime, timedelta
-import difflib 
+import difflib
 
 print("--> Memulai proses analisa data (Update: 6 Tahap Matching)...")
+
 print("--> Sedang membaca file Excel/CSV...")
 try:
     try:
         acc_df = pd.read_excel('Hasil_CleanerACC.xlsx')
-    except:
+    except Exception:
         acc_df = pd.read_csv('Hasil_CleanerACC.xlsx - Sheet1.csv')
 
     try:
         hma_df = pd.read_excel('HMA_csv2ex.xlsx')
-    except:
+    except Exception:
         hma_df = pd.read_csv('HMA_csv2ex.xlsx - Data.csv')
 
     print(f"--> Data Accurate dimuat: {len(acc_df)} baris")
     print(f"--> Data Coretax dimuat: {len(hma_df)} baris")
 
 except Exception as e:
-    print(f"--> Gagal memuat file: {e}")
+    print(f"--> [ERROR] Gagal memuat file: {e}")
     exit()
 
 print("--> Melakukan pembersihan data (Cleaning)...")
 
 def clean_money(val):
-    try: return float(val)
-    except: return 0.0
+    try:
+        return float(val)
+    except Exception:
+        return 0.0
 
 def clean_tin(val):
     s = str(val)
     s = re.sub(r'\D', '', s)
     if s:
-        try: s = str(int(s))
-        except: pass
-    if len(s) > 1: return s[:-1]
+        try:
+            s = str(int(s))
+        except Exception:
+            pass
+    if len(s) > 1:
+        return s[:-1]
     return s
 
 def clean_name(val):
-    if pd.isna(val): return ""
+    if pd.isna(val):
+        return ""
     s = str(val).lower()
     prefixes = ['pt.', 'pt ', 'cv.', 'cv ', 'ud.', 'ud ', 'tb.', 'tb ', 'toko ', 'bengkel ']
-    for p in prefixes: s = s.replace(p, '')
+    for p in prefixes:
+        s = s.replace(p, '')
     s = re.sub(r'[,.\-]', ' ', s)
     s = re.sub(r'[^a-z0-9\s]', '', s)
     s = re.sub(r'\s+', ' ', s)
     return s.strip()
 
-month_map = {'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'Mei': '05', 'Jun': '06', 
-             'Jul': '07', 'Agu': '08', 'Sep': '09', 'Okt': '10', 'Nop': '11', 'Des': '12'}
+month_map = {
+    'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'Mei': '05', 'Jun': '06', 
+    'Jul': '07', 'Agu': '08', 'Sep': '09', 'Okt': '10', 'Nop': '11', 'Des': '12'
+}
 
 def parse_indo_date(date_str):
     try:
         parts = str(date_str).split()
         if len(parts) == 3:
             d, m, y = parts
-            if m in month_map: return datetime(int(y), int(month_map[m]), int(d))
-    except: pass
+            if m in month_map:
+                return datetime(int(y), int(month_map[m]), int(d))
+    except Exception:
+        pass
     return pd.NaT
 
 month_map_rev = {int(v): k for k, v in month_map.items()}
+
 def format_indo_date(dt):
-    if pd.isna(dt): return ""
-    try: return f"{dt.day:02d} {month_map_rev[dt.month]} {dt.year}"
-    except: return ""
+    if pd.isna(dt):
+        return ""
+    try:
+        return f"{dt.day:02d} {month_map_rev[dt.month]} {dt.year}"
+    except Exception:
+        return ""
 
 col_tgl = 'Tgl. Pajak' if 'Tgl. Pajak' in acc_df.columns else 'Tanggal'
 acc_df['Date_Obj'] = acc_df[col_tgl].apply(parse_indo_date)
@@ -80,6 +96,7 @@ hma_df['TIN_Clean'] = hma_df['TIN'].apply(clean_tin)
 hma_df['Name_Clean'] = hma_df['Name'].apply(clean_name)
 
 print("--> Standardisasi Nama, Tanggal, dan NPWP selesai.")
+
 print("--> Mendeteksi Bulan Laporan...")
 try:
     valid_dates = acc_df['Date_Obj'].dropna()
@@ -100,6 +117,7 @@ except Exception as e:
     output_file = 'Laporan_Analisa_Pajak_General.xlsx'
 
 print(f"--> Nama file output diset: {output_file}")
+
 print("--> Memulai proses pencocokan data (Matching 6 Tahap)...")
 
 acc_df['Match_Status'] = 'Not in Coretax'
@@ -110,16 +128,19 @@ hma_df['Match_Index_ACC'] = -1
 hma_by_tin = {}
 for i, r in hma_df.iterrows():
     t = r['TIN_Clean']
-    if t not in hma_by_tin: hma_by_tin[t] = []
+    if t not in hma_by_tin:
+        hma_by_tin[t] = []
     hma_by_tin[t].append(i)
 
 hma_by_amt = {}
 for i, r in hma_df.iterrows():
     amt = int(r['Amount_Clean'])
-    if amt not in hma_by_amt: hma_by_amt[amt] = []
+    if amt not in hma_by_amt:
+        hma_by_amt[amt] = []
     hma_by_amt[amt].append(i)
 
 used_hma = set()
+
 match_count_1 = 0
 for i, row in acc_df.iterrows():
     tin = row['TIN_Clean']
@@ -140,15 +161,18 @@ for i, row in acc_df.iterrows():
             break
 
 print(f"--> Tahap 1 (Exact TIN+Amt+Tgl) selesai. Matches: {match_count_1}")
+
 match_count_2 = 0
 for i, row in acc_df.iterrows():
-    if row['Match_Status'] == 'Matched': continue
+    if row['Match_Status'] == 'Matched':
+        continue
     amt = int(row['Amount_Clean'])
     name = row['Name_Clean']
     date_acc = row['Date_Obj']
     
     candidates = []
-    for delta in range(-5, 6): candidates.extend(hma_by_amt.get(amt + delta, []))
+    for delta in range(-5, 6):
+        candidates.extend(hma_by_amt.get(amt + delta, []))
     candidates = [c for c in candidates if c not in used_hma]
     
     for c_idx in candidates:
@@ -165,9 +189,11 @@ for i, row in acc_df.iterrows():
             break
 
 print(f"--> Tahap 2 (Exact Name+Amt+Tgl) selesai. Matches tambahan: {match_count_2}")
+
 match_count_3 = 0
 for i, row in acc_df[acc_df['Match_Status'] == 'Not in Coretax'].iterrows():
-    if pd.isna(row['Date_Obj']): continue
+    if pd.isna(row['Date_Obj']):
+        continue
     tin = row['TIN_Clean']
     amt = row['Amount_Clean']
     
@@ -175,7 +201,8 @@ for i, row in acc_df[acc_df['Match_Status'] == 'Not in Coretax'].iterrows():
     candidates = [c for c in candidates if c not in used_hma]
     for c_idx in candidates:
         date_hma = hma_df.at[c_idx, 'Date_Obj']
-        if pd.isna(date_hma): continue
+        if pd.isna(date_hma):
+            continue
         
         day_diff = abs((row['Date_Obj'] - date_hma).days)
         if (abs(hma_df.at[c_idx, 'Amount_Clean'] - amt) <= 5) and (day_diff <= 3):
@@ -188,13 +215,15 @@ for i, row in acc_df[acc_df['Match_Status'] == 'Not in Coretax'].iterrows():
             break
 
 print(f"--> Tahap 3 (Date Window +/- 3 Hari) selesai. Matches tambahan: {match_count_3}")
+
 match_count_4 = 0
 for i, row in acc_df[acc_df['Match_Status'] == 'Not in Coretax'].iterrows():
     amt = int(row['Amount_Clean'])
     name_acc = row['Name_Clean']
     
     candidates = []
-    for delta in range(-5, 6): candidates.extend(hma_by_amt.get(amt + delta, []))
+    for delta in range(-5, 6):
+        candidates.extend(hma_by_amt.get(amt + delta, []))
     candidates = [c for c in candidates if c not in used_hma]
     
     for c_idx in candidates:
@@ -215,14 +244,17 @@ for i, row in acc_df[acc_df['Match_Status'] == 'Not in Coretax'].iterrows():
                 break
 
 print(f"--> Tahap 4 (Fuzzy Name Score > 80%) selesai. Matches tambahan: {match_count_4}")
+
 match_count_5 = 0
 for i, row in acc_df[acc_df['Match_Status'] == 'Not in Coretax'].iterrows():
     amt = int(row['Amount_Clean'])
     date_acc = row['Date_Obj']
-    if pd.isna(date_acc): continue
+    if pd.isna(date_acc):
+        continue
 
     candidates = []
-    for delta in range(-5, 6): candidates.extend(hma_by_amt.get(amt + delta, []))
+    for delta in range(-5, 6):
+        candidates.extend(hma_by_amt.get(amt + delta, []))
     candidates = [c for c in candidates if c not in used_hma]
 
     for c_idx in candidates:
@@ -237,14 +269,17 @@ for i, row in acc_df[acc_df['Match_Status'] == 'Not in Coretax'].iterrows():
             break
 
 print(f"--> Tahap 5 (Timeline: Tgl + Amt) selesai. Matches tambahan: {match_count_5}")
+
 match_count_6 = 0
 for i, row in acc_df[acc_df['Match_Status'] == 'Not in Coretax'].iterrows():
     amt = int(row['Amount_Clean'])
     name_prefix = row['Name_Clean'][:5]
-    if len(name_prefix) < 3: continue 
+    if len(name_prefix) < 3:
+        continue 
 
     candidates = []
-    for delta in range(-5, 6): candidates.extend(hma_by_amt.get(amt + delta, []))
+    for delta in range(-5, 6):
+        candidates.extend(hma_by_amt.get(amt + delta, []))
     candidates = [c for c in candidates if c not in used_hma]
 
     for c_idx in candidates:
@@ -260,6 +295,7 @@ for i, row in acc_df[acc_df['Match_Status'] == 'Not in Coretax'].iterrows():
 
 print(f"--> Tahap 6 (Prefix: 5 Karakter Nama + Amt) selesai. Matches tambahan: {match_count_6}")
 print(f"--> Total Data Matched: {len(used_hma)}")
+
 print("--> Menyusun data laporan akhir...")
 
 col_map = {
@@ -271,7 +307,8 @@ col_map = {
 }
 
 def add_total(df, label):
-    if df.empty: return df
+    if df.empty:
+        return df
     total_acc = df['Jumlah Accurate'].sum() if 'Jumlah Accurate' in df else 0
     total_hma = df['Jumlah Coretax'].sum() if 'Jumlah Coretax' in df else 0
     total_diff = df['Perbedaan/Selisih'].sum() if 'Perbedaan/Selisih' in df else 0
@@ -313,14 +350,17 @@ for i, row in acc_df[acc_df['Match_Status'] == 'Matched'].iterrows():
     notes = []
     
     if row['Name_Clean'] != hma_row['Name_Clean']:
-         if (row['Name_Clean'] not in hma_row['Name_Clean']) and (hma_row['Name_Clean'] not in row['Name_Clean']):
-             notes.append("Nama Beda")
+        if (row['Name_Clean'] not in hma_row['Name_Clean']) and (hma_row['Name_Clean'] not in row['Name_Clean']):
+            notes.append("Nama Beda")
              
-    if row['TIN_Clean'] != hma_row['TIN_Clean']: notes.append("Format NPWP Beda")
-    if row['Date_Obj'] != hma_row['Date_Obj']: notes.append("Beda Tanggal")
+    if row['TIN_Clean'] != hma_row['TIN_Clean']:
+        notes.append("Format NPWP Beda")
+    if row['Date_Obj'] != hma_row['Date_Obj']:
+        notes.append("Beda Tanggal")
     
     diff = row['Jumlah Pajak'] - hma_row['VAT']
-    if diff != 0: notes.append(f"Selisih: {diff}")
+    if diff != 0:
+        notes.append(f"Selisih: {diff}")
     
     list_c.append({
         'Date_ACC': row['Tgl. Pajak'], 'Date_HMA': format_indo_date(hma_row['Date_Obj']),
@@ -371,6 +411,7 @@ for i, r in df_summ.iterrows():
     ws1.write(i+2, 1, r['Nilai'], fmt_curr)
 ws1.set_column(0, 0, 40)
 ws1.set_column(1, 1, 20)
+
 ws2 = wb.add_worksheet('Rincian')
 cursor = 0
 
@@ -392,7 +433,8 @@ def write_block(title, df, row_idx):
         
         for c, col in enumerate(cols):
             val = row_data[col]
-            if pd.isna(val): val = ""
+            if pd.isna(val):
+                val = ""
             ft = f_norm
             if col in ['Jumlah Accurate', 'Jumlah Coretax', 'Perbedaan/Selisih']:
                 ft = f_curr
@@ -432,23 +474,3 @@ writer.sheets['Data Asli Coretax'].set_column(0, 20, 20)
 
 writer.close()
 print("--> Selesai! File laporan telah siap!")
-print("--> Menghapus file input lama (Clean Up)...")
-files_to_delete = [
-    'Hasil_CleanerACC.xlsx', 'Hasil_CleanerACC.xlsx - Sheet1.csv',
-    'HMA_csv2ex.xlsx', 'HMA_csv2ex.xlsx - Data.csv'
-]
-
-count_del = 0
-for f in files_to_delete:
-    if os.path.exists(f):
-        try:
-            os.remove(f)
-            count_del += 1
-            print(f"--> Berhasil menghapus: {f}")
-        except Exception as e:
-            print(f"--> Gagal menghapus {f}: {e}")
-
-if count_del == 0:
-    print("--> Tidak ada file input yang perlu dihapus.")
-else:
-    print("--> Proses Clean Up selesai.")

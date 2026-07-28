@@ -55,8 +55,10 @@ def process_tax_report():
     }
 
     def parse_indo_date(date_val):
-        if pd.isna(date_val): return pd.NaT
-        if isinstance(date_val, pd.Timestamp): return date_val
+        if pd.isna(date_val): 
+            return pd.NaT
+        if isinstance(date_val, pd.Timestamp): 
+            return date_val
         date_str = str(date_val)
         for indo, eng in month_map.items():
             if indo in date_str:
@@ -104,7 +106,7 @@ def process_tax_report():
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
+                except Exception:
                     pass
                 if column_letter == 'D' and cell.row > 1:
                     cell.number_format = '#,##0'
