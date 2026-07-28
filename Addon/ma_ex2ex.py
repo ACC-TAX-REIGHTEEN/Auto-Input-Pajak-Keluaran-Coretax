@@ -9,6 +9,7 @@ def gabung_paksa_urutan():
     pola_file = "data_export*.xlsx"
     nama_sheet_target = "data" 
     nama_file_output = "HMA_ex2ex.xlsx"
+
     semua_file = glob.glob(os.path.join(path_folder, pola_file))
     semua_file = [f for f in semua_file if nama_file_output not in f]
 
@@ -33,14 +34,14 @@ def gabung_paksa_urutan():
             df.columns = range(df.shape[1])
             
             if len(df.columns) != len(header_utama):
-                print(f"--> Info {file} jumlah kolom beda. Tetap digabung.")
+                print(f"--> [WARNING] {file} jumlah kolom beda. Tetap digabung.")
             
             list_data.append(df)
             file_sukses.append(file)
-            print(f"--> OK {file} : {len(df)} baris")
+            print(f"--> [OK] {file} : {len(df)} baris")
             
         except Exception as e:
-            print(f"--> Skip {file}: {e}")
+            print(f"--> [SKIP] {file}: {e}")
 
     if list_data:
         try:
@@ -78,21 +79,23 @@ def gabung_paksa_urutan():
                     try:
                         if cell.value:
                             item_len = len(str(cell.value))
-                            if item_len > max_length: max_length = item_len
-                    except: pass
+                            if item_len > max_length: 
+                                max_length = item_len
+                    except: 
+                        pass
                 ws.column_dimensions[col_letter].width = max_length + 2
 
             wb.save(nama_file_output)
             print(f"--> SUKSES! Data tersimpan di: {nama_file_output}")
 
-            print("\n--- MEMBERSIHKAN FILE ASLI ---")
+            print("--> --- MEMBERSIHKAN FILE ASLI ---")
             for f in file_sukses:
                 try:
                     if os.path.exists(f):
                         os.remove(f)
-                        print(f"[DELETED] {f}")
+                        print(f"--> [DELETED] {f}")
                 except Exception as e:
-                    print(f"--> Gagal hapus {f}: {e}")
+                    print(f"--> [GAGAL HAPUS] {f}: {e}")
             print("--> Selesai membersihkan file sumber.")
 
         except Exception as e:
