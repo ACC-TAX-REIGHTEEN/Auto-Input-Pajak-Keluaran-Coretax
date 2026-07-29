@@ -58,6 +58,7 @@ def main():
         ]
 
         addon_files = [
+            "Mini Analisis.py",
             "audit_data_gabungan_keluaran_ex.py",
             "cleaner&merger.py",
             "csv2ex.py",
