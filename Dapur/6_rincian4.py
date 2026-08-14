@@ -4,11 +4,14 @@ from collections import defaultdict
 import openpyxl
 from openpyxl.styles import Border, Font, PatternFill, Side
 
-file_list = glob.glob("*.xlsx")
+file_list = glob.glob("Laporan_Analisa_Pajak*.xlsx")
+
+if not file_list:
+    file_list = glob.glob("*.xlsx")
 
 if not file_list:
     print("--> Error: Tidak ada file Excel (.xlsx) yang ditemukan.")
-    sys.exit()
+    sys.exit(1)
 
 file_name = file_list[0]
 print("--> Membuka file Excel:", file_name)
@@ -17,8 +20,8 @@ wb = openpyxl.load_workbook(file_name)
 
 target_sheet = "Data Asli Coretax"
 if target_sheet not in wb.sheetnames:
-    print(f"--> Error: Sheet '{target_sheet}' tidak ditemukan dalam file.")
-    sys.exit()
+    print(f"--> Error: Sheet '{target_sheet}' tidak ditemukan dalam file {file_name}.")
+    sys.exit(1)
 
 ws = wb[target_sheet]
 
@@ -68,8 +71,8 @@ if new_sheet_name in wb.sheetnames:
     del wb[new_sheet_name]
 
 ws_new = wb.create_sheet(title=new_sheet_name)
-
 ws_new.append(headers)
+
 for row in duplicate_rows:
     ws_new.append(row)
 
@@ -104,7 +107,7 @@ if len(duplicate_rows) > 0:
                 val_str = str(cell.value) if cell.value is not None else ""
                 if len(val_str) > max_length:
                     max_length = len(val_str)
-            except:
+            except Exception:
                 pass
         ws_new.column_dimensions[col_letter].width = max(max_length + 3, 10)
 
