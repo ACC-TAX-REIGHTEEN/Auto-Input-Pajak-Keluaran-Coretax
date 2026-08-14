@@ -55,6 +55,7 @@ def main():
             "3_Rincian2.py",
             "4_rincian3.py",
             "5_LookupNameData.py",
+            "6_rincian4.py",
         ]
 
         addon_files = [
@@ -140,6 +141,11 @@ def main():
         print("--> Menjalankan 5_LookupNameData.py...")
         subprocess.run(
             [sys.executable, "5_LookupNameData.py"], cwd=dapur_dir, check=True
+        )
+
+        print("--> Menjalankan 6_rincian4.py...")
+        subprocess.run(
+            [sys.executable, "6_rincian4.py"], cwd=dapur_dir, check=True
         )
 
         result_files = glob.glob(
